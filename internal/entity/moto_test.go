@@ -17,3 +17,15 @@ func TestNewMoto(t *testing.T) {
 	assert.Equal(t, "Kawazaki Ninja", moto.Model)
 	assert.Equal(t, "123jkl", moto.Plate)
 }
+
+func TestNewMoto_InvalidYear(t *testing.T) {
+	_, err := NewMoto(0, "Model X", "ABC-1234")
+	assert.Error(t, err)
+	assert.Equal(t, "year must be positive", err.Error())
+}
+
+func TestNewMoto_EmptyPlate(t *testing.T) {
+	_, err := NewMoto(2024, "Model X", "")
+	assert.Error(t, err)
+	assert.Equal(t, "plate cannot be empty", err.Error())
+}

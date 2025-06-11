@@ -1,6 +1,11 @@
 package entity
 
-import "github.com/Rafaelse6/mottus-ops-desafio/pkg/entity"
+import (
+	"errors"
+	"strings"
+
+	"github.com/Rafaelse6/mottus-ops-desafio/pkg/entity"
+)
 
 type Moto struct {
 	ID    entity.ID `json:"id"`
@@ -10,6 +15,15 @@ type Moto struct {
 }
 
 func NewMoto(year int, model string, plate string) (*Moto, error) {
+
+	if year <= 0 {
+		return nil, errors.New("year must be positive")
+	}
+
+	if strings.TrimSpace(plate) == "" {
+		return nil, errors.New("plate cannot be empty")
+	}
+
 	return &Moto{
 		ID:    entity.NewID(),
 		Year:  year,
