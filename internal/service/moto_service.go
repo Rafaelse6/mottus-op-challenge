@@ -1,0 +1,53 @@
+package service
+
+import (
+	"encoding/json"
+	"errors"
+
+	"github.com/Rafaelse6/mottus-ops-desafio/internal/entity"
+	"github.com/Rafaelse6/mottus-ops-desafio/internal/event"
+	"github.com/Rafaelse6/mottus-ops-desafio/internal/repository"
+)
+
+var (
+	ErrIDIsRequired       = errors.New("id is required")
+	ErrInvaldiId          = errors.New("invalid id")
+	ErrYearIsRequired     = errors.New("year is required")
+	ErrModelIsRequired    = errors.New("model is required")
+	ErrInvalidPlate       = errors.New("invalid plate")
+	ErrPlateAlreadyExists = errors.New("plate already registered")
+	ErrMotoNotFound       = errors.New("moto not found")
+)
+
+type MotoService struct {
+	repo      repository.MotoRepository
+	publisher event.Publisher
+}
+
+func NewMotoService(repo repository.MotoRepository) *MotoService {
+	return &MotoService{repo: repo}
+}
+
+func (s *MotoService) CreateMoto(year int, model, plate string) (*entity.Moto, error) {
+	existing, _ := s.repo.FindByPlate(plate)
+	if existing != nil {
+		return nil, ErrPlateAlreadyExists
+	}
+
+	moto, err := entity.NewMoto(year, model, plate)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.repo.Save(moto)
+	if err != nil {
+		return nil, err
+	}
+	// publish event
+	payload, err := json.Marshal(moto)
+	if err == nil {
+		_ = s.publisher.Publish("moto.created", payload)
+	}
+
+	return moto, nil
+}
