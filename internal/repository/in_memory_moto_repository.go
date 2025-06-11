@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/entity"
@@ -19,6 +21,11 @@ func NewInMemoryMotoRepository() *InMemoryMotoRepository {
 }
 
 func (r *InMemoryMotoRepository) Save(moto *entity.Moto) error {
+
+	if moto == nil {
+		return fmt.Errorf("moto cannot be nil")
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.motos[moto.ID] = moto
@@ -56,6 +63,11 @@ func (r *InMemoryMotoRepository) UpdatePlate(id uuid.UUID, newPlate string) {
 func (r *InMemoryMotoRepository) Delete(id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if _, exists := r.motos[id]; !exists {
+		return errors.New("moto not found")
+	}
+
 	delete(r.motos, id)
 	return nil
 }
