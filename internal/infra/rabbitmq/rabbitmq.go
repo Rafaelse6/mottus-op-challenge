@@ -1,39 +1,39 @@
-// internal/infra/rabbitmq/rabbitmq.go
 package rabbitmq
 
 import (
 	"github.com/streadway/amqp"
 )
 
-type RabbitMQPublisher struct {
-	Channel *amqp.Channel
-}
-
-func NewRabbitMQPublisher(channel *amqp.Channel) *RabbitMQPublisher {
-	return &RabbitMQPublisher{Channel: channel}
-}
-
-func (r *RabbitMQPublisher) Publish(queue string, body []byte) error {
-	_, err := r.Channel.QueueDeclare(
-		queue,
-		true,  // durable
-		false, // autoDelete
-		false, // exclusive
-		false, // noWait
-		nil,   // args
-	)
+func NewRabbitMQChannel(url string) (*amqp.Channel, func(), error) {
+	conn, err := amqp.Dial(url)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return r.Channel.Publish(
-		"",    // exchange
-		queue, // routing key
-		false, // mandatory
-		false, // immediate
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-		},
+	ch, err := conn.Channel()
+	if err != nil {
+		conn.Close()
+		return nil, nil, err
+	}
+
+	_, err = ch.QueueDeclare(
+		"motos", // queue name
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
+	if err != nil {
+		ch.Close()
+		conn.Close()
+		return nil, nil, err
+	}
+
+	closeFunc := func() {
+		ch.Close()
+		conn.Close()
+	}
+
+	return ch, closeFunc, nil
 }
