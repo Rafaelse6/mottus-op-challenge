@@ -14,41 +14,24 @@ import (
 )
 
 func main() {
-	// Conexão com RabbitMQ
-	rmqChan, closeConn, err := rabbitmq.NewRabbitMQChannel("amqp://admin:admin@localhost:5672/")
-	go func() {
-		msgs, err := rmqChan.Consume(
-			"motos", // queue name
-			"",      // consumer tag
-			true,    // auto-ack
-			false,   // exclusive
-			false,   // no-local
-			false,   // no-wait
-			nil,     // args
-		)
-		if err != nil {
-			log.Printf("Erro ao consumir mensagens: %v", err)
-			return
-		}
-
-		for msg := range msgs {
-			log.Printf("Mensagem recebida: %s", msg.Body)
-		}
-	}()
+	ch, closeConn, err := rabbitmq.NewRabbitMQChannel("amqp://admin:admin@localhost:5672/")
 	if err != nil {
 		log.Fatalf("Erro ao conectar com RabbitMQ: %v", err)
 	}
 	defer closeConn()
 
-	// Inicializa camada de domínio
+	err = rabbitmq.StartConsumer(ch, "motos")
+	if err != nil {
+		log.Fatalf("Erro ao iniciar consumidor RabbitMQ: %v", err)
+	}
+
 	repo := repository.NewInMemoryMotoRepository()
-	svc := service.NewMotoService(repo, rmqChan)
+	publisher := rabbitmq.NewRabbitMQPublisher(ch)
+	svc := service.NewMotoService(repo, publisher)
 	ctrl := controller.NewMotoController(svc)
 
-	// Roteador
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-
 	r.Post("/motos", ctrl.Create)
 
 	log.Println("Servidor iniciado em http://localhost:8080")
