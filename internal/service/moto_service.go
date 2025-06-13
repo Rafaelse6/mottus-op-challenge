@@ -8,7 +8,6 @@ import (
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/entity"
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/event"
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/repository"
-	"github.com/streadway/amqp"
 )
 
 var (
@@ -24,13 +23,12 @@ var (
 type MotoService struct {
 	repo      repository.MotoRepository
 	publisher event.Publisher
-	rmqChan   *amqp.Channel
 }
 
-func NewMotoService(repo repository.MotoRepository, rmqChan *amqp.Channel) *MotoService {
+func NewMotoService(repo repository.MotoRepository, publisher event.Publisher) *MotoService {
 	return &MotoService{
-		repo:    repo,
-		rmqChan: rmqChan,
+		repo:      repo,
+		publisher: publisher,
 	}
 }
 
@@ -50,7 +48,7 @@ func (s *MotoService) CreateMoto(year int, model, plate string) (*entity.Moto, e
 		return nil, err
 	}
 
-	// Publica o evento no RabbitMQ
+	// Publica o evento com o publisher injetado
 	payload, err := json.Marshal(map[string]interface{}{
 		"event":   "Moto created",
 		"moto_id": moto.ID,
@@ -60,20 +58,10 @@ func (s *MotoService) CreateMoto(year int, model, plate string) (*entity.Moto, e
 	})
 	if err != nil {
 		log.Printf("Erro ao serializar mensagem: %v", err)
-		return moto, nil // Não falha o cadastro por erro no evento
+		return moto, nil
 	}
 
-	err = s.rmqChan.Publish(
-		"",      // exchange
-		"motos", // queue name (a mesma declarada no NewRabbitMQChannel)
-		false,   // mandatory
-		false,   // immediate
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        payload,
-		},
-	)
-	if err != nil {
+	if err := s.publisher.Publish("motos", payload); err != nil {
 		log.Printf("Erro ao publicar mensagem: %v", err)
 	}
 
