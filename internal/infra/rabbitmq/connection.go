@@ -1,11 +1,13 @@
 package rabbitmq
 
 import (
+	"log"
+
 	"github.com/streadway/amqp"
 )
 
-func NewRabbitMQChannel(url string) (*amqp.Channel, func(), error) {
-	conn, err := amqp.Dial(url)
+func NewRabbitMQChannel(amqpURL string) (*amqp.Channel, func(), error) {
+	conn, err := amqp.Dial(amqpURL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -16,19 +18,21 @@ func NewRabbitMQChannel(url string) (*amqp.Channel, func(), error) {
 		return nil, nil, err
 	}
 
+	// Declara a fila (caso ainda não exista)
 	_, err = ch.QueueDeclare(
-		"motos", // queue name
-		true,
-		false,
-		false,
-		false,
+		"motos",
+		true,  // durable
+		false, // auto-delete
+		false, // exclusive
+		false, // no-wait
 		nil,
 	)
 	if err != nil {
-		ch.Close()
 		conn.Close()
 		return nil, nil, err
 	}
+
+	log.Println("RabbitMQ conectado com sucesso")
 
 	closeFunc := func() {
 		ch.Close()

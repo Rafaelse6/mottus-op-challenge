@@ -48,7 +48,6 @@ func (s *MotoService) CreateMoto(year int, model, plate string) (*entity.Moto, e
 		return nil, err
 	}
 
-	// Publica o evento com o publisher injetado
 	payload, err := json.Marshal(map[string]interface{}{
 		"event":   "Moto created",
 		"moto_id": moto.ID,

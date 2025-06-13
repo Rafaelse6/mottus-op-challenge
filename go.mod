@@ -33,7 +33,6 @@ require (
 	github.com/lestrrat-go/iter v1.0.0 // indirect
 	github.com/lestrrat-go/jwx v1.1.0 // indirect
 	github.com/lestrrat-go/option v1.0.0 // indirect
-	github.com/lib/pq v1.10.9
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/viper v1.20.1
 	github.com/streadway/amqp v1.1.0
