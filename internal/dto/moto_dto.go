@@ -1,19 +1,23 @@
 package dto
 
+import (
+	"github.com/Rafaelse6/mottus-ops-desafio/internal/entity"
+)
+
 type MotoDTO struct {
 	Year  int    `json:"year"`
 	Model string `json:"model"`
 	Plate string `json:"plate"`
 }
 
-func ToEntity(motoDTO *MotoDTO) (*Moto, error) {
-	moto, err := NewMoto(motoDTO.Year, motoDTO.Model, motoDTO.Plate)
-	if err != nil {
-		return nil, err
+func NewMotoDTO(year int, model string, plate string) *MotoDTO {
+	return &MotoDTO{
+		Year:  year,
+		Model: model,
+		Plate: plate,
 	}
-	return moto, nil
 }
 
-func NewMoto(i int, s1, s2 string) (any, any) {
-	panic("unimplemented")
+func (d *MotoDTO) ToEntity() (*entity.Moto, error) {
+	return entity.NewMoto(d.Year, d.Model, d.Plate)
 }
