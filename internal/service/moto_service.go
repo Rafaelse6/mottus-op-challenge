@@ -8,6 +8,7 @@ import (
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/entity"
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/event"
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/repository"
+	"github.com/google/uuid"
 )
 
 var (
@@ -66,4 +67,22 @@ func (s *MotoService) CreateMoto(year int, model, plate string) (*entity.Moto, e
 
 	log.Printf("Moto criada e evento publicado: %s", payload)
 	return moto, nil
+}
+
+func (s *MotoService) ListMotos(plateFilter string) ([]*entity.Moto, error) {
+	return s.repo.List(plateFilter)
+}
+
+func (s *MotoService) UpdatePlate(id uuid.UUID, newPlate string) error {
+
+	existing, _ := s.repo.FindByPlate(newPlate)
+	if existing != nil && existing.ID != id {
+		return ErrPlateAlreadyExists
+	}
+
+	return s.repo.UpdatePlate(id, newPlate)
+}
+
+func (s *MotoService) DeleteMoto(id uuid.UUID) error {
+	return s.repo.Delete(id)
 }

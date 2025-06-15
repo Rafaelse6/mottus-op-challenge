@@ -33,6 +33,9 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Post("/motos", ctrl.Create)
+	r.Get("/motos", ctrl.List)
+	r.Put("/motos/{id}/plate", ctrl.UpdatePlate)
+	r.Delete("/motos/{id}", ctrl.Delete)
 
 	log.Println("Servidor iniciado em http://localhost:8080")
 	http.ListenAndServe(":8080", r)

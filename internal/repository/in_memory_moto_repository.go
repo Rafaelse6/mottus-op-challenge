@@ -52,12 +52,27 @@ func (r *InMemoryMotoRepository) FindByPlate(plate string) (*entity.Moto, error)
 	return nil, nil
 }
 
-func (r *InMemoryMotoRepository) UpdatePlate(id uuid.UUID, newPlate string) {
+func (r *InMemoryMotoRepository) UpdatePlate(id uuid.UUID, newPlate string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	moto, exists := r.motos[id]
+	if !exists {
+		return errors.New("moto not found")
+	}
+
 	if moto, ok := r.motos[id]; ok {
 		moto.Plate = newPlate
 	}
+
+	for _, m := range r.motos {
+		if m.Plate == newPlate && m.ID != id {
+			return errors.New("plate already registered")
+		}
+	}
+
+	moto.Plate = newPlate
+	return nil
 }
 
 func (r *InMemoryMotoRepository) Delete(id uuid.UUID) error {
@@ -70,4 +85,18 @@ func (r *InMemoryMotoRepository) Delete(id uuid.UUID) error {
 
 	delete(r.motos, id)
 	return nil
+}
+
+func (r *InMemoryMotoRepository) List(plateFilter string) ([]*entity.Moto, error) {
+	r.mu.Lock()
+	defer r.mu.RUnlock()
+
+	var motos []*entity.Moto
+	for _, moto := range r.motos {
+		if plateFilter == "" || moto.Plate == plateFilter {
+			motos = append(motos, moto)
+		}
+	}
+
+	return motos, nil
 }

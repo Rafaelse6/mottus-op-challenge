@@ -11,6 +11,11 @@ type motoRepositoryPg struct {
 	db *sql.DB
 }
 
+// Lis implements MotoRepository.
+func (r *motoRepositoryPg) List(plateFilter string) ([]*entity.Moto, error) {
+	panic("unimplemented")
+}
+
 // FindByID implements MotoRepository.
 func (r *motoRepositoryPg) FindByID(id uuid.UUID) (*entity.Moto, error) {
 	panic("unimplemented")
@@ -26,7 +31,7 @@ func NewMotoRepositoryPg(db *sql.DB) MotoRepository {
 }
 
 // UpdatePlate implements MotoRepository.
-func (r *motoRepositoryPg) UpdatePlate(id uuid.UUID, newPlate string) {
+func (r *motoRepositoryPg) UpdatePlate(id uuid.UUID, newPlate string) error {
 	panic("unimplemented")
 }
 
