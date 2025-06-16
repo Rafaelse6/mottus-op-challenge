@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/Rafaelse6/mottus-ops-desafio/internal/entity"
@@ -44,8 +45,11 @@ func (r *InMemoryMotoRepository) FindByID(id uuid.UUID) (*entity.Moto, error) {
 func (r *InMemoryMotoRepository) FindByPlate(plate string) (*entity.Moto, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	normalizedPlate := strings.ToUpper(strings.TrimSpace(plate))
+
 	for _, moto := range r.motos {
-		if moto.Plate == plate {
+		if strings.ToUpper(strings.TrimSpace(moto.Plate)) == normalizedPlate {
 			return moto, nil
 		}
 	}
@@ -88,7 +92,7 @@ func (r *InMemoryMotoRepository) Delete(id uuid.UUID) error {
 }
 
 func (r *InMemoryMotoRepository) List(plateFilter string) ([]*entity.Moto, error) {
-	r.mu.Lock()
+	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	var motos []*entity.Moto

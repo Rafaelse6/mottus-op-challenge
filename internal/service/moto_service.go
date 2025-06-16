@@ -73,6 +73,21 @@ func (s *MotoService) ListMotos(plateFilter string) ([]*entity.Moto, error) {
 	return s.repo.List(plateFilter)
 }
 
+func (s *MotoService) FindByPlate(plate string) (*entity.Moto, error) {
+	if plate == "" {
+		return nil, ErrInvalidPlate
+	}
+
+	moto, err := s.repo.FindByPlate(plate)
+	if err != nil {
+		return nil, err
+	}
+	if moto == nil {
+		return nil, ErrMotoNotFound
+	}
+	return moto, nil
+}
+
 func (s *MotoService) UpdatePlate(id uuid.UUID, newPlate string) error {
 
 	existing, _ := s.repo.FindByPlate(newPlate)

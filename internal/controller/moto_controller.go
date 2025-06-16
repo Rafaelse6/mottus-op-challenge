@@ -47,6 +47,27 @@ func (c *MotoController) List(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(motos)
 }
 
+func (c *MotoController) FindByPlate(w http.ResponseWriter, r *http.Request) {
+	plate := chi.URLParam(r, "plate")
+	if plate == "" {
+		http.Error(w, "plate is required", http.StatusBadRequest)
+		return
+	}
+
+	moto, err := c.service.FindByPlate(plate)
+	if err != nil {
+		if err == service.ErrMotoNotFound {
+			http.Error(w, "moto not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(moto)
+}
+
 func (c *MotoController) UpdatePlate(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idParam)

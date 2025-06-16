@@ -32,10 +32,14 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Post("/motos", ctrl.Create)
-	r.Get("/motos", ctrl.List)
-	r.Put("/motos/{id}/plate", ctrl.UpdatePlate)
-	r.Delete("/motos/{id}", ctrl.Delete)
+
+	r.Route("/motos", func(r chi.Router) {
+		r.Post("/", ctrl.Create)
+		r.Get("/plate/{plate}", ctrl.FindByPlate)
+		r.Get("/", ctrl.List)
+		r.Put("/{id}/plate", ctrl.UpdatePlate)
+		r.Delete("/{id}", ctrl.Delete)
+	})
 
 	log.Println("Servidor iniciado em http://localhost:8080")
 	http.ListenAndServe(":8080", r)
