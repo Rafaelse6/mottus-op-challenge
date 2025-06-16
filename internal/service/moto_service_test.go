@@ -15,6 +15,11 @@ type MockMotoRepository struct {
 	mock.Mock
 }
 
+func (m *MockMotoRepository) List(plateFilter string) ([]*entity.Moto, error) {
+	args := m.Called(plateFilter)
+	return args.Get(0).([]*entity.Moto), args.Error(1)
+}
+
 func (m *MockMotoRepository) Save(moto *entity.Moto) error {
 	args := m.Called(moto)
 	return args.Error(0)
@@ -22,7 +27,9 @@ func (m *MockMotoRepository) Save(moto *entity.Moto) error {
 
 func (m *MockMotoRepository) FindByID(id uuid.UUID) (*entity.Moto, error) {
 	args := m.Called(id)
-	return args.Get(0).(*entity.Moto), args.Error(1)
+
+	moto, _ := args.Get(0).(*entity.Moto)
+	return moto, args.Error(1)
 }
 
 func (m *MockMotoRepository) FindByPlate(plate string) (*entity.Moto, error) {
@@ -33,8 +40,9 @@ func (m *MockMotoRepository) FindByPlate(plate string) (*entity.Moto, error) {
 	return nil, args.Error(1)
 }
 
-func (m *MockMotoRepository) UpdatePlate(id uuid.UUID, newPlate string) {
-	m.Called(id, newPlate)
+func (m *MockMotoRepository) UpdatePlate(id uuid.UUID, newPlate string) error {
+	args := m.Called(id, newPlate)
+	return args.Error(0)
 }
 
 func (m *MockMotoRepository) Delete(id uuid.UUID) error {
@@ -115,4 +123,105 @@ func TestCreateMoto_InvalidData(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
+}
+
+func TestUpdatePlate_Success(t *testing.T) {
+	mockRepo := new(MockMotoRepository)
+	mockPublisher := new(MockPublisher)
+	service := NewMotoService(mockRepo, mockPublisher)
+
+	id := uuid.New()
+	newPlate := "DEF-5678"
+
+	mockRepo.On("FindByPlate", newPlate).Return(nil, nil)
+	mockRepo.On("UpdatePlate", id, newPlate).Return(nil)
+
+	err := service.UpdatePlate(id, newPlate)
+	assert.NoError(t, err)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUpdatePlate_PlateAlreadyExists(t *testing.T) {
+	mockRepo := new(MockMotoRepository)
+	mockPublisher := new(MockPublisher)
+	service := NewMotoService(mockRepo, mockPublisher)
+
+	id := uuid.New()
+	existing := &entity.Moto{ID: uuid.New(), Plate: "DEF-5678"}
+
+	mockRepo.On("FindByPlate", "DEF-5678").Return(existing, nil)
+
+	err := service.UpdatePlate(id, "DEF-5678")
+	assert.ErrorIs(t, err, ErrPlateAlreadyExists)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestFindByPlate_Success(t *testing.T) {
+	mockRepo := new(MockMotoRepository)
+	mockPublisher := new(MockPublisher)
+	service := NewMotoService(mockRepo, mockPublisher)
+
+	expected := &entity.Moto{ID: uuid.New(), Plate: "XYZ-9999"}
+	mockRepo.On("FindByPlate", "XYZ-9999").Return(expected, nil)
+
+	result, err := service.FindByPlate("XYZ-9999")
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, result)
+}
+
+func TestFindByPlate_NotFound(t *testing.T) {
+	mockRepo := new(MockMotoRepository)
+	mockPublisher := new(MockPublisher)
+	service := NewMotoService(mockRepo, mockPublisher)
+
+	mockRepo.On("FindByPlate", "ABC-0000").Return(nil, nil)
+
+	result, err := service.FindByPlate("ABC-0000")
+
+	assert.ErrorIs(t, err, ErrMotoNotFound)
+	assert.Nil(t, result)
+}
+
+func TestDeletMoto_Success(t *testing.T) {
+	mockRepo := new(MockMotoRepository)
+	mockPublisher := new(MockPublisher)
+	service := NewMotoService(mockRepo, mockPublisher)
+
+	id := uuid.New()
+	mockRepo.On("Delete", id).Return(nil)
+
+	err := service.DeleteMoto(id)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestListMotos_WithAndWithoutFilter(t *testing.T) {
+	mockRepo := new(MockMotoRepository)
+	mockPublisher := new(MockPublisher)
+	service := NewMotoService(mockRepo, mockPublisher)
+
+	motos := []*entity.Moto{
+		{ID: uuid.New(), Year: 2024, Model: "Honda", Plate: "ABC-1234"},
+		{ID: uuid.New(), Year: 2023, Model: "Yamaha", Plate: "XYZ-5678"},
+	}
+
+	mockRepo.On("List", "").Return(motos, nil)
+
+	result, err := service.ListMotos("")
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+
+	filtered := []*entity.Moto{motos[1]}
+	mockRepo.On("List", "XYZ-5678").Return(filtered, nil)
+
+	resultFiltered, err := service.ListMotos("XYZ-5678")
+	assert.NoError(t, err)
+	assert.Len(t, resultFiltered, 1)
+	assert.Equal(t, "XYZ-5678", resultFiltered[0].Plate)
+
+	mockRepo.AssertExpectations(t)
 }
